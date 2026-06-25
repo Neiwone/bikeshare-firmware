@@ -1,16 +1,18 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "bike_config.h"
+
 LOG_MODULE_REGISTER(bikeshare, LOG_LEVEL_INF);
 
 int main(void)
 {
-    LOG_INF("Hello from Bikeshare Firmware!");
+	LOG_INF("Bikeshare Firmware iniciando...");
 
-    while (1) {
-        LOG_INF("Firmware running...");
-        k_sleep(K_SECONDS(5));
-    }
+	bike_config_init();
 
-    return 0;
+	LOG_INF("ID: %s", bike_config_get_id()[0]
+		? bike_config_get_id() : "(nao configurado)");
+
+	return 0;
 }
