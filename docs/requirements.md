@@ -1,0 +1,82 @@
+# Requirements Traceability
+
+This document maps the coursework requirements to the agreed firmware design and current repository status.
+
+## Compliance Risk
+
+The assignment requires at least one of these communication interfaces: Bluetooth, Wi-Fi, Ethernet, USB ACM excluding the debug UART, or USB NCM. If none are used, the assignment allows substitution with a manually implemented I2C or SPI sensor driver.
+
+The agreed MVP uses LTE/4G through the nRF9160 modem and does not include the manual I2C/SPI sensor substitute. LTE/4G is the main product communication interface, but it is not explicitly listed in the assignment text.
+
+Therefore, instructor approval is required for LTE/4G to count as the communication-interface requirement. Without that approval, the project may not satisfy the stated minimum hardware requirement as written.
+
+## Hardware Requirements
+
+| Requirement | Target implementation | Verification | Current status |
+| --- | --- | --- | --- |
+| Zephyr RTOS application | Standalone Zephyr/NCS C application under `app/`. | Build with `west build`. | Basic app exists. Final NCS target still pending. |
+| Debug UART | Zephyr console, logging, and shell over the board debug UART. | Connect serial terminal and verify boot logs/shell. | Shell/logging config exists for current app. |
+| LED | Onboard LED through devicetree alias `led0`. | State changes produce documented LED patterns. | Not implemented yet. |
+| Button | Onboard button through devicetree alias `sw0`. | Button starts trip from `RESERVED` and ends trip from `IN_USE`. | Not implemented yet. |
+| Communication interface | LTE/4G modem on nRF9160 DK with MQTT. | Device connects over LTE and exchanges MQTT messages with Mosquitto. | Not implemented yet. Requires instructor approval for requirement compliance. |
+| Optional GNSS | Best-effort GNSS telemetry on nRF9160. | Telemetry includes location when a fix is valid and no-fix status otherwise. | Not implemented yet. |
+
+## Zephyr Subsystem Requirements
+
+| Requirement | Target implementation | Verification | Current status |
+| --- | --- | --- | --- |
+| Logging | Zephyr Logging for boot, config, LTE/MQTT lifecycle, backend commands, state transitions, trips, telemetry publish results, warnings, and errors. | UART logs during demo and tests. | Basic logging exists. Policy not fully implemented. |
+| Shell | Shell commands for setup, diagnostics, and simulated backend rental commands. | Run `bike set ...`, `bike get`, `bike sim authorize`, and `bike sim cancel`. | Basic `bike set id/token/url`, `bike get`, and HTTP test exist. MQTT/APN/simulation commands pending. |
+| Settings | Zephyr Settings with NVS backend on hardware. | Configure settings, reboot, verify values persist. | Runtime Settings exists for development only. NVS pending. |
+| zbus | Channels: `button_event`, `backend_command`, `bike_state`, and `telemetry_sample`. | Unit tests and runtime logs show decoupled module communication. | Not implemented yet. |
+| ZTEST | Unit tests for state, backend commands, LED mapping, config validation, and telemetry formatting. | Run Twister on `native_sim`. | Not implemented yet. |
+| Twister | Automated test execution for non-hardware logic. | `west twister ...` passes. | Not implemented yet. |
+
+## Functional Requirements
+
+| Requirement | Target implementation | Verification | Current status |
+| --- | --- | --- | --- |
+| Bike identification | Persist `bike/id`. | `bike set id <id>`, reboot, `bike get`. | Existing `id` command exists. Persistence is runtime-only. |
+| Device token | Persist `bike/device_token`. | `bike set token <token>`, MQTT auth uses token. | Existing command stores `token`; final key/name pending. |
+| MQTT broker host | Persist `bike/mqtt_host`. | `bike set mqtt_host <host>`, MQTT connects. | Not implemented yet. |
+| MQTT broker port | Persist `bike/mqtt_port`. | `bike set mqtt_port <port>`, validation rejects invalid ports. | Not implemented yet. |
+| LTE APN | Persist `bike/apn`. | `bike set apn <apn>`, modem configuration uses APN. | Not implemented yet. |
+| Initial state | Missing/invalid config enters `UNREGISTERED`; valid config and successful initialization enters `AVAILABLE`; unrecoverable init failure enters `ERROR`. | State-machine tests and boot demo. | Not implemented yet. |
+| Rental authorization | `RENT_AUTHORIZE` from MQTT or `bike sim authorize <rental_id>` moves `AVAILABLE -> RESERVED`. | MQTT/demo shell flow. | Not implemented yet. |
+| Rental cancellation | `RENT_CANCEL` from MQTT or `bike sim cancel` moves matching `RESERVED -> AVAILABLE`. | MQTT/demo shell flow. | Not implemented yet. |
+| Reservation timeout | `RESERVED` returns to `AVAILABLE` after 60 seconds without button press. | ZTEST with controlled time or manual demo. | Not implemented yet. |
+| Trip start | Button press in `RESERVED` moves to `IN_USE`. | Button demo and state test. | Not implemented yet. |
+| Trip end | Button press in `IN_USE` moves to `AVAILABLE`. | Button demo and state test. | Not implemented yet. |
+| Invalid commands | Invalid, duplicate, or state-incompatible backend commands are warned and rejected without state change. | Backend command tests. | Not implemented yet. |
+| LED indication | One LED shows state pattern. | Manual demo and LED mapping test. | Not implemented yet. |
+| Telemetry | Publish periodic telemetry over MQTT. | Broker receives messages. | Not implemented yet. |
+| Offline behavior | Local state continues during LTE/MQTT disconnect; MQTT reconnects in background. | Manual disconnect/reconnect validation. | Not implemented yet. |
+
+## Logging Policy
+
+Use Zephyr Logging levels consistently:
+
+| Level | Use |
+| --- | --- |
+| `LOG_INF` | Boot, configuration loaded, LTE/MQTT connected, state transitions, trip start/end, telemetry publish success. |
+| `LOG_WRN` | Ignored button presses, invalid backend commands, missing optional GNSS fix, reconnect attempts. |
+| `LOG_ERR` | Settings load failure, modem initialization failure, MQTT setup failure, unrecoverable module errors. |
+
+## Current Implementation Gaps
+
+The repository currently implements only the early configuration and native-simulation skeleton. The following work remains before the documentation and firmware match:
+
+- Switch final hardware documentation/build path to nRF Connect SDK.
+- Add board-specific configuration for nRF9160 LTE, MQTT, GNSS, and NVS.
+- Replace `url` configuration with MQTT host/port and APN configuration.
+- Add zbus channels.
+- Add state machine and reservation timeout.
+- Add GPIO button and LED modules.
+- Add LTE/MQTT client.
+- Add best-effort GNSS telemetry.
+- Add ZTEST/Twister tests.
+- Add the final demo flow.
+
+## Reference
+
+The project was inspired by the Penn State Hackster project "Bike Share System with Cellular-Based IoT and oneM2M". This firmware design is separate and focused on the Zephyr/NCS coursework deliverable.
