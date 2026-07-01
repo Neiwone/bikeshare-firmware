@@ -19,22 +19,24 @@ Primary automated platform:
 native_sim
 ```
 
+The initial test metadata also allows `native_sim/native/64`, which is useful on hosts that do not have the 32-bit runtime libraries needed by the default native simulator runner.
+
 Example Twister command shape:
 
 ```bash
 west twister -p native_sim -T bikeshare-firmware/tests
 ```
 
-Exact paths can change when the test directories are implemented.
+The repository now has an initial `tests/` application for config validation and core state transitions. Additional suites are still planned for LED mapping, telemetry formatting, and more backend edge cases.
 
 ## Planned ZTEST Suites
 
 | Suite | Purpose | Example checks |
 | --- | --- | --- |
-| `bike_state` | Validate all state-machine transitions. | Boot rules, `AVAILABLE -> RESERVED`, `RESERVED -> IN_USE`, `IN_USE -> AVAILABLE`, error handling. |
-| `backend_command` | Validate backend command handling. | Accept `RENT_AUTHORIZE` only in `AVAILABLE`, accept matching `RENT_CANCEL` only in `RESERVED`, reject duplicates/mismatches. |
+| `bike_state` | Validate all state-machine transitions. | Boot rules, `AVAILABLE -> RESERVED`, `RESERVED -> IN_USE`, `IN_USE -> AVAILABLE`, error handling. Initial coverage exists. |
+| `backend_command` | Validate backend command handling. | Accept `RENT_AUTHORIZE` only in `AVAILABLE`, accept matching `RENT_CANCEL` only in `RESERVED`, reject duplicates/mismatches. Initial direct state coverage exists. |
 | `led_status` | Validate state-to-pattern mapping. | `UNREGISTERED=off`, `AVAILABLE=slow blink`, `RESERVED=fast blink`, `IN_USE=solid on`, `ERROR=SOS/error`. |
-| `bike_config` | Validate configuration handling. | Required fields, non-empty strings, valid `mqtt_port` in `1..65535`, invalid config keeps bike `UNREGISTERED`. |
+| `bike_config` | Validate configuration handling. | Required fields, non-empty strings, valid `mqtt_port` in `1..65535`, invalid config keeps bike `UNREGISTERED`. Initial coverage exists. |
 | `telemetry` | Validate telemetry formatting logic. | Includes bike ID, state, `uptime_ms`, rental ID when active, trip duration, LTE status placeholder, GNSS fix/no-fix status. |
 
 ## State-Machine Test Cases
@@ -170,4 +172,4 @@ The demo is considered successful when:
 - GNSS fixes may be unavailable indoors or during short demos.
 - LTE registration depends on SIM, antenna, network coverage, and APN configuration.
 - Local Mosquitto must be reachable from the cellular network.
-- Current repository code does not yet implement most planned test suites.
+- Current repository code implements only the initial config/state test application. Hardware-dependent behavior and several planned suites are still pending.

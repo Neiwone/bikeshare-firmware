@@ -42,21 +42,24 @@ Implemented now:
 
 - Basic Zephyr application under `app/`.
 - Logging startup messages.
-- `bike_config` module with shell commands for `id`, `token`, and `url`.
+- `bike_config` module with runtime settings for `id`, `device_token`, `mqtt_host`, `mqtt_port`, and `apn`.
+- Dedicated shell module with setup commands, `bike get`, `bike state`, and local simulation commands.
+- Initial zbus channels for button events, backend commands, state changes, and telemetry samples.
+- Initial bike state machine for `UNREGISTERED`, `AVAILABLE`, `RESERVED`, and `IN_USE` flows.
 - Zephyr Settings using `CONFIG_SETTINGS_RUNTIME` for development-time storage.
-- A simple HTTP backend connectivity test for `native_sim` networking.
+- Initial ZTEST/Twister application for config validation and core state transitions.
 - Upstream Zephyr manifest pinned to `v4.4.0`.
 
 Main implementation gaps before the agreed MVP:
 
 - Migrate the final hardware target to nRF Connect SDK for nRF9160 LTE/GNSS support.
-- Replace the current `url` setting with MQTT-oriented settings: `id`, `token`, `mqtt_host`, `mqtt_port`, and `apn`.
 - Add NVS-backed Settings for hardware persistence.
-- Add zbus channels and the bike state machine.
+- Complete the `ERROR` fault path in the state machine.
+- Complete zbus users for telemetry, LED, physical button, and MQTT.
 - Add GPIO button and LED modules using `sw0` and `led0` devicetree aliases.
 - Add MQTT over LTE.
 - Add best-effort GNSS telemetry.
-- Add ZTEST/Twister test suites.
+- Expand ZTEST/Twister suites for LED, telemetry, timeout timing, and edge cases.
 
 ## Target Hardware
 
@@ -87,10 +90,22 @@ Development build for `native_sim`:
 west build -b native_sim bikeshare-firmware/app -d build/native_sim -p always
 ```
 
+If the default `native_sim` runner fails to link because the host lacks compatible 32-bit runtime libraries, use the 64-bit native simulator variant:
+
+```bash
+west build -b native_sim/native/64 bikeshare-firmware/app -d build/native_sim64 -p always
+```
+
 Run `native_sim`:
 
 ```bash
 west build -d build/native_sim -t run
+```
+
+Run the 64-bit native simulator build:
+
+```bash
+west build -d build/native_sim64 -t run
 ```
 
 ## Runtime Configuration
@@ -103,7 +118,7 @@ The agreed MVP settings are:
 - `bike/mqtt_port`
 - `bike/apn`
 
-Planned shell commands:
+Implemented shell commands:
 
 ```text
 bike set id <bike_id>
@@ -112,13 +127,15 @@ bike set mqtt_host <host>
 bike set mqtt_port <port>
 bike set apn <apn>
 bike get
+bike state
 ```
 
 For local demos, shell can inject simulated backend commands:
 
 ```text
 bike sim authorize <rental_id>
-bike sim cancel
+bike sim cancel [rental_id]
+bike sim button
 ```
 
 The demo command `bike get` may print the token for debugging. Production firmware should mask secrets.
@@ -135,7 +152,7 @@ bikes/{bike_id}/events
 bikes/{bike_id}/commands
 ```
 
-## Demo Checklist
+## Final Hardware Demo Checklist
 
 - Firmware boots and prints logs on debug UART.
 - Shell is available over the debug UART.
@@ -151,6 +168,32 @@ bikes/{bike_id}/commands
 - Telemetry and trip/state events are published over MQTT.
 - GNSS fields are included when a valid fix exists; otherwise telemetry reports that no fix is available.
 - ZTEST/Twister suites pass for non-hardware logic.
+
+## Current Native Simulation Demo
+
+The current implementation can validate the configuration and state-machine flow without LTE, MQTT, LED, physical button, GNSS, or NVS:
+
+```text
+bike set id BIKE_001
+bike set token TOKEN_FOR_DEMO
+bike set mqtt_host broker.example.com
+bike set mqtt_port 1883
+bike set apn internet
+bike get
+bike state
+bike sim authorize RENTAL_001
+bike state
+bike sim button
+bike state
+bike sim button
+bike state
+```
+
+Automated checks:
+
+```bash
+west twister -p native_sim/native/64 -T bikeshare-firmware/tests
+```
 
 ## Reference
 

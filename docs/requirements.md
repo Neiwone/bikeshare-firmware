@@ -26,28 +26,28 @@ Therefore, instructor approval is required for LTE/4G to count as the communicat
 | Requirement | Target implementation | Verification | Current status |
 | --- | --- | --- | --- |
 | Logging | Zephyr Logging for boot, config, LTE/MQTT lifecycle, backend commands, state transitions, trips, telemetry publish results, warnings, and errors. | UART logs during demo and tests. | Basic logging exists. Policy not fully implemented. |
-| Shell | Shell commands for setup, diagnostics, and simulated backend rental commands. | Run `bike set ...`, `bike get`, `bike sim authorize`, and `bike sim cancel`. | Basic `bike set id/token/url`, `bike get`, and HTTP test exist. MQTT/APN/simulation commands pending. |
+| Shell | Shell commands for setup, diagnostics, and simulated backend rental commands. | Run `bike set ...`, `bike get`, `bike state`, `bike sim authorize`, and `bike sim cancel`. | Config, state diagnostic, and simulation commands implemented. MQTT/LTE diagnostics pending. |
 | Settings | Zephyr Settings with NVS backend on hardware. | Configure settings, reboot, verify values persist. | Runtime Settings exists for development only. NVS pending. |
-| zbus | Channels: `button_event`, `backend_command`, `bike_state`, and `telemetry_sample`. | Unit tests and runtime logs show decoupled module communication. | Not implemented yet. |
-| ZTEST | Unit tests for state, backend commands, LED mapping, config validation, and telemetry formatting. | Run Twister on `native_sim`. | Not implemented yet. |
-| Twister | Automated test execution for non-hardware logic. | `west twister ...` passes. | Not implemented yet. |
+| zbus | Channels: `button_event`, `backend_command`, `bike_state`, and `telemetry_sample`. | Unit tests and runtime logs show decoupled module communication. | Channel scaffolding exists; backend/button/state channels are used. |
+| ZTEST | Unit tests for state, backend commands, LED mapping, config validation, and telemetry formatting. | Run Twister on `native_sim`. | Initial config and state tests added. LED and telemetry tests pending. |
+| Twister | Automated test execution for non-hardware logic. | `west twister ...` passes. | Initial test application exists under `tests/`; full verification depends on native simulator link environment. |
 
 ## Functional Requirements
 
 | Requirement | Target implementation | Verification | Current status |
 | --- | --- | --- | --- |
 | Bike identification | Persist `bike/id`. | `bike set id <id>`, reboot, `bike get`. | Existing `id` command exists. Persistence is runtime-only. |
-| Device token | Persist `bike/device_token`. | `bike set token <token>`, MQTT auth uses token. | Existing command stores `token`; final key/name pending. |
-| MQTT broker host | Persist `bike/mqtt_host`. | `bike set mqtt_host <host>`, MQTT connects. | Not implemented yet. |
-| MQTT broker port | Persist `bike/mqtt_port`. | `bike set mqtt_port <port>`, validation rejects invalid ports. | Not implemented yet. |
-| LTE APN | Persist `bike/apn`. | `bike set apn <apn>`, modem configuration uses APN. | Not implemented yet. |
-| Initial state | Missing/invalid config enters `UNREGISTERED`; valid config and successful initialization enters `AVAILABLE`; unrecoverable init failure enters `ERROR`. | State-machine tests and boot demo. | Not implemented yet. |
-| Rental authorization | `RENT_AUTHORIZE` from MQTT or `bike sim authorize <rental_id>` moves `AVAILABLE -> RESERVED`. | MQTT/demo shell flow. | Not implemented yet. |
-| Rental cancellation | `RENT_CANCEL` from MQTT or `bike sim cancel` moves matching `RESERVED -> AVAILABLE`. | MQTT/demo shell flow. | Not implemented yet. |
-| Reservation timeout | `RESERVED` returns to `AVAILABLE` after 60 seconds without button press. | ZTEST with controlled time or manual demo. | Not implemented yet. |
-| Trip start | Button press in `RESERVED` moves to `IN_USE`. | Button demo and state test. | Not implemented yet. |
-| Trip end | Button press in `IN_USE` moves to `AVAILABLE`. | Button demo and state test. | Not implemented yet. |
-| Invalid commands | Invalid, duplicate, or state-incompatible backend commands are warned and rejected without state change. | Backend command tests. | Not implemented yet. |
+| Device token | Persist `bike/device_token`. | `bike set token <token>`, MQTT auth uses token. | Runtime setting and shell command implemented. MQTT use pending. |
+| MQTT broker host | Persist `bike/mqtt_host`. | `bike set mqtt_host <host>`, MQTT connects. | Runtime setting and shell command implemented. MQTT use pending. |
+| MQTT broker port | Persist `bike/mqtt_port`. | `bike set mqtt_port <port>`, validation rejects invalid ports. | Runtime setting, shell command, and validation implemented. MQTT use pending. |
+| LTE APN | Persist `bike/apn`. | `bike set apn <apn>`, modem configuration uses APN. | Runtime setting and shell command implemented. LTE use pending. |
+| Initial state | Missing/invalid config enters `UNREGISTERED`; valid config and successful initialization enters `AVAILABLE`; unrecoverable init failure enters `ERROR`. | State-machine tests and boot demo. | `UNREGISTERED`/`AVAILABLE` boot rule implemented. `ERROR` fault path pending. |
+| Rental authorization | `RENT_AUTHORIZE` from MQTT or `bike sim authorize <rental_id>` moves `AVAILABLE -> RESERVED`. | MQTT/demo shell flow. | Shell simulation path implemented. MQTT path pending. |
+| Rental cancellation | `RENT_CANCEL` from MQTT or `bike sim cancel` moves matching `RESERVED -> AVAILABLE`. | MQTT/demo shell flow. | Shell simulation path implemented. MQTT path pending. |
+| Reservation timeout | `RESERVED` returns to `AVAILABLE` after 60 seconds without button press. | ZTEST with controlled time or manual demo. | Implemented with delayed work; controlled-time test pending. |
+| Trip start | Button press in `RESERVED` moves to `IN_USE`. | Button demo and state test. | State transition implemented; physical button module pending. Shell can simulate button event. |
+| Trip end | Button press in `IN_USE` moves to `AVAILABLE`. | Button demo and state test. | State transition implemented; physical button module pending. Shell can simulate button event. |
+| Invalid commands | Invalid, duplicate, or state-incompatible backend commands are warned and rejected without state change. | Backend command tests. | Initial rejection behavior implemented. |
 | LED indication | One LED shows state pattern. | Manual demo and LED mapping test. | Not implemented yet. |
 | Telemetry | Publish periodic telemetry over MQTT. | Broker receives messages. | Not implemented yet. |
 | Offline behavior | Local state continues during LTE/MQTT disconnect; MQTT reconnects in background. | Manual disconnect/reconnect validation. | Not implemented yet. |
@@ -68,13 +68,12 @@ The repository currently implements only the early configuration and native-simu
 
 - Switch final hardware documentation/build path to nRF Connect SDK.
 - Add board-specific configuration for nRF9160 LTE, MQTT, GNSS, and NVS.
-- Replace `url` configuration with MQTT host/port and APN configuration.
-- Add zbus channels.
-- Add state machine and reservation timeout.
+- Add hardware persistence with NVS instead of runtime-only Settings.
+- Complete zbus users for telemetry, LED, button, and MQTT.
 - Add GPIO button and LED modules.
 - Add LTE/MQTT client.
 - Add best-effort GNSS telemetry.
-- Add ZTEST/Twister tests.
+- Expand ZTEST/Twister tests for LED, telemetry, timeout timing, and more backend edge cases.
 - Add the final demo flow.
 
 ## Reference
