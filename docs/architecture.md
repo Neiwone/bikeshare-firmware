@@ -183,8 +183,10 @@ GNSS must not block trips, state transitions, MQTT connection, or the class demo
 
 Recommended project configuration layout:
 
-- Common Zephyr subsystem options in `app/prj.conf`.
-- nRF9160/NCS LTE, MQTT, GNSS, and NVS options in board-specific configuration.
-- `native_sim` networking and test-only options in a separate simulator configuration.
+- Common Zephyr subsystem options live in `app/prj.conf`.
+- `native_sim` TAP networking and static IP settings live in `app/boards/native_sim.conf` and `app/boards/native_sim_native_64.conf`.
+- nRF9160 DK hardware persistence, GPIO, UART shell, and generic MQTT/network library scaffolding live in `app/boards/nrf9160dk_nrf9160_ns.conf`.
+- The nRF9160 settings partition is selected in `app/boards/nrf9160dk_nrf9160_ns.overlay`.
+- NCS-specific LTE modem and GNSS options should be added to the nRF9160 board configuration when the manifest moves from upstream Zephyr to NCS.
 
 This avoids mixing hardware modem options with host-simulation options.

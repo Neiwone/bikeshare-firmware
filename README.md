@@ -47,13 +47,14 @@ Implemented now:
 - Initial zbus channels for button events, backend commands, state changes, and telemetry samples.
 - Initial bike state machine for `UNREGISTERED`, `AVAILABLE`, `RESERVED`, and `IN_USE` flows.
 - Zephyr Settings using `CONFIG_SETTINGS_RUNTIME` for development-time storage.
+- Board-specific app configuration: `native_sim` and `native_sim/native/64` own TAP/static-IP networking, while `nrf9160dk_nrf9160_ns` owns GPIO/UART/NVS persistence scaffolding.
 - Initial ZTEST/Twister application for config validation and core state transitions.
 - Upstream Zephyr manifest pinned to `v4.4.0`.
 
 Main implementation gaps before the agreed MVP:
 
 - Migrate the final hardware target to nRF Connect SDK for nRF9160 LTE/GNSS support.
-- Add NVS-backed Settings for hardware persistence.
+- Validate NVS-backed Settings on hardware.
 - Complete the `ERROR` fault path in the state machine.
 - Complete zbus users for telemetry, LED, physical button, and MQTT.
 - Add GPIO button and LED modules using `sw0` and `led0` devicetree aliases.

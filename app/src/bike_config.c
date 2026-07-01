@@ -84,7 +84,14 @@ SETTINGS_STATIC_HANDLER_DEFINE(bike, "bike", NULL, settings_set_cb, NULL, NULL);
 
 int bike_config_init(void)
 {
-	int rc = settings_load();
+	int rc = settings_subsys_init();
+
+	if (rc) {
+		LOG_ERR("Falha ao inicializar configuracoes: %d", rc);
+		return rc;
+	}
+
+	rc = settings_load();
 
 	if (rc) {
 		LOG_ERR("Falha ao carregar configuracoes: %d", rc);
