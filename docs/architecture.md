@@ -12,7 +12,7 @@ This document defines the target firmware architecture for the Bikeshare Firmwar
 
 ## Module Layout
 
-Planned modules:
+Modules:
 
 | Module | Responsibility |
 | --- | --- |
@@ -58,7 +58,7 @@ The MVP uses four logical channels:
 | `bike_state` | `bike_state` | `led_status`, `telemetry`, `mqtt_client` | Publishes authoritative state changes. |
 | `telemetry_sample` | `telemetry` | `mqtt_client` | Publishes periodic telemetry samples. |
 
-Message contents are implemented as compact C structs in `app/include/app_channels.h`. The current channel scaffolding covers button events, backend commands, state publications, and telemetry samples; only button/backend/state are actively used by implemented modules.
+Message contents are implemented as compact C structs in `app/include/app_channels.h`. The current channel scaffolding covers button events, backend commands, state publications, and telemetry samples; button/backend/state are actively used by implemented modules, and `led_status` observes the state channel.
 
 ## State Machine
 

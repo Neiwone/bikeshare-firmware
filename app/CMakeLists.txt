@@ -9,6 +9,7 @@ target_sources(app PRIVATE
 	src/bike_config.c
 	src/bike_shell.c
 	src/bike_state.c
+	src/led_status.c
 )
 
 target_include_directories(app PRIVATE include)

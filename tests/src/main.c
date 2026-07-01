@@ -5,6 +5,7 @@
 
 #include "bike_config.h"
 #include "bike_state.h"
+#include "led_status.h"
 
 ZTEST(bike_config, test_config_validation)
 {
@@ -60,5 +61,20 @@ ZTEST(bike_state, test_core_state_transitions)
 	zassert_equal(bike_state_get_rental_id()[0], '\0');
 }
 
+ZTEST(led_status, test_state_to_pattern_mapping)
+{
+	zassert_equal(led_status_pattern_for_state(BIKE_STATE_UNREGISTERED),
+		      LED_STATUS_OFF);
+	zassert_equal(led_status_pattern_for_state(BIKE_STATE_AVAILABLE),
+		      LED_STATUS_BLINK_SLOW);
+	zassert_equal(led_status_pattern_for_state(BIKE_STATE_RESERVED),
+		      LED_STATUS_BLINK_FAST);
+	zassert_equal(led_status_pattern_for_state(BIKE_STATE_IN_USE),
+		      LED_STATUS_SOLID_ON);
+	zassert_equal(led_status_pattern_for_state(BIKE_STATE_ERROR),
+		      LED_STATUS_ERROR);
+}
+
 ZTEST_SUITE(bike_config, NULL, NULL, NULL, NULL, NULL);
 ZTEST_SUITE(bike_state, NULL, NULL, NULL, NULL, NULL);
+ZTEST_SUITE(led_status, NULL, NULL, NULL, NULL, NULL);

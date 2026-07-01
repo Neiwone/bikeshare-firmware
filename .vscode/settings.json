@@ -1,6 +1,6 @@
 {
   "cmake.configureOnOpen": false,
-  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/native_sim/compile_commands.json",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/../build/native_sim64/compile_commands.json",
   "C_Cpp.default.configurationProvider": "",
   "files.associations": {
     "*.conf": "kconfig",

@@ -1,0 +1,195 @@
+#include <errno.h>
+
+#include <zephyr/devicetree.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/zbus/zbus.h>
+
+#include "app_channels.h"
+#include "led_status.h"
+
+#if defined(CONFIG_GPIO) && DT_NODE_HAS_STATUS(DT_ALIAS(led0), okay)
+#include <zephyr/drivers/gpio.h>
+#define LED_STATUS_HAS_GPIO 1
+#else
+#define LED_STATUS_HAS_GPIO 0
+#endif
+
+LOG_MODULE_REGISTER(led_status, LOG_LEVEL_INF);
+
+#if LED_STATUS_HAS_GPIO
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+#endif
+
+static enum led_status_pattern current_pattern = LED_STATUS_OFF;
+static struct k_work_delayable blink_work;
+static bool led_is_on;
+
+// Flag to indicate if the LED status module has been initialized. This is used to prevent hardware writes before initialization.
+static bool initialized;
+
+enum led_status_pattern led_status_pattern_for_state(enum bike_state_value state)
+{
+	switch (state) {
+	case BIKE_STATE_UNREGISTERED:
+		return LED_STATUS_OFF;
+	case BIKE_STATE_AVAILABLE:
+		return LED_STATUS_BLINK_SLOW;
+	case BIKE_STATE_RESERVED:
+		return LED_STATUS_BLINK_FAST;
+	case BIKE_STATE_IN_USE:
+		return LED_STATUS_SOLID_ON;
+	case BIKE_STATE_ERROR:
+		return LED_STATUS_ERROR;
+	default:
+		return LED_STATUS_ERROR;
+	}
+}
+
+enum led_status_pattern led_status_get_pattern(void)
+{
+	return current_pattern;
+}
+
+const char *led_status_pattern_name(enum led_status_pattern pattern)
+{
+	switch (pattern) {
+	case LED_STATUS_OFF:
+		return "OFF";
+	case LED_STATUS_SOLID_ON:
+		return "SOLID_ON";
+	case LED_STATUS_BLINK_SLOW:
+		return "BLINK_SLOW";
+	case LED_STATUS_BLINK_FAST:
+		return "BLINK_FAST";
+	case LED_STATUS_ERROR:
+		return "ERROR";
+	default:
+		return "UNKNOWN";
+	}
+}
+
+/**
+ * @brief Set the LED output state.
+ *
+ * Updates the internal LED state and configures the GPIO pin if available.
+ * Only performs hardware write if the module is initialized.
+ *
+ * @param on LED state: true for ON, false for OFF
+ */
+static void write_led(bool on)
+{
+	led_is_on = on;
+
+#if LED_STATUS_HAS_GPIO
+	if (initialized) {
+		(void)gpio_pin_set_dt(&led, on ? 1 : 0);
+	}
+#endif
+}
+
+static k_timeout_t blink_interval(enum led_status_pattern pattern)
+{
+	switch (pattern) {
+	case LED_STATUS_BLINK_SLOW:
+		return K_MSEC(1000);
+	case LED_STATUS_BLINK_FAST:
+		return K_MSEC(250);
+	case LED_STATUS_ERROR:
+		return K_MSEC(150);
+	default:
+		return K_FOREVER;
+	}
+}
+
+// Saber se o padrao atual eh de piscar ou nao
+static bool pattern_blinks(enum led_status_pattern pattern)
+{
+	return pattern == LED_STATUS_BLINK_SLOW ||
+	       pattern == LED_STATUS_BLINK_FAST ||
+	       pattern == LED_STATUS_ERROR;
+}
+
+// Handler for the blink work item. Toggles the LED state and reschedules itself if the current pattern requires blinking.
+static void blink_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (!pattern_blinks(current_pattern)) {
+		return;
+	}
+
+	write_led(!led_is_on);
+	(void)k_work_reschedule(&blink_work, blink_interval(current_pattern));
+}
+
+static void apply_pattern(enum led_status_pattern pattern)
+{
+	if (!initialized) {
+		current_pattern = pattern;
+		return;
+	}
+
+	if (current_pattern == pattern && initialized) {
+		return;
+	}
+
+	current_pattern = pattern;
+	(void)k_work_cancel_delayable(&blink_work);
+
+	switch (pattern) {
+	case LED_STATUS_OFF:
+		write_led(false);
+		break;
+	case LED_STATUS_SOLID_ON:
+		write_led(true);
+		break;
+	case LED_STATUS_BLINK_SLOW:
+	case LED_STATUS_BLINK_FAST:
+	case LED_STATUS_ERROR:
+		write_led(true);
+		(void)k_work_reschedule(&blink_work, blink_interval(pattern));
+		break;
+	default:
+		write_led(false);
+		break;
+	}
+
+	LOG_INF("Padrao LED: %s", led_status_pattern_name(pattern));
+}
+
+int led_status_init(void)
+{
+	k_work_init_delayable(&blink_work, blink_handler);
+
+#if LED_STATUS_HAS_GPIO
+	if (!gpio_is_ready_dt(&led)) {
+		LOG_ERR("LED led0 nao esta pronto");
+		return -ENODEV;
+	}
+
+	int rc = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
+
+	if (rc) {
+		LOG_ERR("Falha ao configurar LED led0: %d", rc);
+		return rc;
+	}
+#else
+	LOG_WRN("Alias led0 indisponivel; LED mantido em modo logico");
+#endif
+
+	initialized = true;
+	apply_pattern(current_pattern);
+	return 0;
+}
+
+static void bike_state_listener(const struct zbus_channel *chan)
+{
+	const struct bike_state_msg *msg = zbus_chan_const_msg(chan);
+
+	apply_pattern(led_status_pattern_for_state(msg->state));
+}
+
+// Cria o listener do led status para o canal de estado da bike
+ZBUS_LISTENER_DEFINE(led_status_state_listener, bike_state_listener);
+ZBUS_CHAN_ADD_OBS(bike_state_chan, led_status_state_listener, 0);

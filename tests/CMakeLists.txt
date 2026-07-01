@@ -10,4 +10,5 @@ target_sources(app PRIVATE
 	../app/src/app_channels.c
 	../app/src/bike_config.c
 	../app/src/bike_state.c
+	../app/src/led_status.c
 )

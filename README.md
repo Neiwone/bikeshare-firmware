@@ -46,21 +46,23 @@ Implemented now:
 - Dedicated shell module with setup commands, `bike get`, `bike state`, and local simulation commands.
 - Initial zbus channels for button events, backend commands, state changes, and telemetry samples.
 - Initial bike state machine for `UNREGISTERED`, `AVAILABLE`, `RESERVED`, and `IN_USE` flows.
+- `led_status` module that observes bike state changes and maps them to LED patterns, using `led0` when available and a logical fallback on host simulation.
 - Zephyr Settings using `CONFIG_SETTINGS_RUNTIME` for development-time storage.
 - Board-specific app configuration: `native_sim` and `native_sim/native/64` own TAP/static-IP networking, while `nrf9160dk_nrf9160_ns` owns GPIO/UART/NVS persistence scaffolding.
-- Initial ZTEST/Twister application for config validation and core state transitions.
+- Initial ZTEST/Twister application for config validation, core state transitions, and LED state-to-pattern mapping.
 - Upstream Zephyr manifest pinned to `v4.4.0`.
 
 Main implementation gaps before the agreed MVP:
 
 - Migrate the final hardware target to nRF Connect SDK for nRF9160 LTE/GNSS support.
 - Validate NVS-backed Settings on hardware.
+- Validate LED GPIO behavior on nRF9160 DK hardware.
 - Complete the `ERROR` fault path in the state machine.
-- Complete zbus users for telemetry, LED, physical button, and MQTT.
-- Add GPIO button and LED modules using `sw0` and `led0` devicetree aliases.
+- Complete zbus users for telemetry, physical button, and MQTT.
+- Add GPIO button module using the `sw0` devicetree alias.
 - Add MQTT over LTE.
 - Add best-effort GNSS telemetry.
-- Expand ZTEST/Twister suites for LED, telemetry, timeout timing, and edge cases.
+- Expand ZTEST/Twister suites for telemetry, timeout timing, and edge cases.
 
 ## Target Hardware
 
@@ -172,7 +174,7 @@ bikes/{bike_id}/commands
 
 ## Current Native Simulation Demo
 
-The current implementation can validate the configuration and state-machine flow without LTE, MQTT, LED, physical button, GNSS, or NVS:
+The current implementation can validate the configuration, state-machine flow, and logical LED state mapping without LTE, MQTT, physical button, GNSS, or NVS:
 
 ```text
 bike set id BIKE_001
