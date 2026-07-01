@@ -1,6 +1,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "button_input.h"
 #include "bike_config.h"
 #include "bike_state.h"
 #include "led_status.h"
@@ -13,6 +14,7 @@ int main(void)
 
 	bike_config_init();
 	led_status_init();
+	button_input_init();
 	bike_state_init();
 
 	LOG_INF("ID: %s", bike_config_get_id()[0]
