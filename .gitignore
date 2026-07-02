@@ -11,7 +11,7 @@
 # Emacs
 \#*\#
 
-build*/
+# build*/
 !doc/build/
 !scripts/build
 !tests/drivers/build_all

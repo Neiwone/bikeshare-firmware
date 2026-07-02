@@ -1,0 +1,2 @@
+"nrf":"/home/vinicius/bikeshare-workspace/nrf":"/home/vinicius/bikeshare-workspace/nrf/sysbuild"
+"mcuboot":"/home/vinicius/bikeshare-workspace/bootloader/mcuboot":"/home/vinicius/bikeshare-workspace/bootloader/mcuboot/boot/zephyr/sysbuild"
